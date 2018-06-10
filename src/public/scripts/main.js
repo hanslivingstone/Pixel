@@ -8,7 +8,7 @@
     var CANVAS_WIDTH = Pixel.CANVAS_WIDTH;
     var CANVAS_HEIGHT = Pixel.CANVAS_HEIGHT;
     
-    var DEFAULT_COLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in PixelServer.js
+    var colorOLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in PixelServer.js
     
     var stage;                                          // EaselJS stage
     var pixels;                                         // EaselJS container to store all the pixels
@@ -16,12 +16,21 @@
     var isDrawing = false;                              // whether a new pixel to draw is being selected
     var drawingShape = new createjs.Shape();            // shape to render pixel selector
     var selectedColor = "rgb(255,0,0)";                 // color to draw
+    let colorPicker;
+    
+    let wasDrawing = false;
+    let startedDrawing = false;
+
+    const BACKGROUND_COLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in PixelServer.js
+    const DEFAULT_COLOR = "rgb(208,234,43)";
 
     var pixelMap = new Array(CANVAS_WIDTH);             // 2D array mapping of pixels
     for (var i = 0; i < CANVAS_WIDTH; i++)
         pixelMap[i] = Array(CANVAS_HEIGHT);
 
     var pixelRefreshData;
+
+    const endDate = new Date(Date.UTC(2018, 5, 12)); // This value must be sync'd with the value in pixelServer.js
 
     function uintToRgb(color){
       const mask = 255;
@@ -31,6 +40,10 @@
       const b = color & (mask);
       
       return "rgb(" + r + "," + g + "," + b + ")";
+    }
+    
+    function isActive(){
+      return endDate - Date.now() > 0;
     }
     
     /* START PixelSocket CODE */
@@ -90,22 +103,30 @@
 
     /* Enable pixel selector */
     function startDrawing(color) {
-        console.log("Selected Color", color);
-        var p = pixels.globalToLocal(stage.mouseX, stage.mouseY);
-        selectedColor = color;
-        drawingShape.graphics.clear().beginFill(selectedColor).drawRect(0, 0, 1, 1);
-        drawingShape.x = Math.floor(p.x);
-        drawingShape.y = Math.floor(p.y);
-        drawingShape.visible = true;
-        isDrawing = true;
-        $(screen.canvas).trigger("mousemove");
-        stage.update();
+        if(isActive()){
+          console.log("Selected Color", color);
+          var p = pixels.globalToLocal(stage.mouseX, stage.mouseY);
+          selectedColor = color;
+          drawingShape.graphics.clear().beginFill(selectedColor).drawRect(0, 0, 1, 1);
+          drawingShape.x = Math.floor(p.x);
+          drawingShape.y = Math.floor(p.y);
+          drawingShape.visible = true;
+          isDrawing = true;
+          $(screen.canvas).trigger("mousemove");
+          stage.update();
+          startedDrawing = true;
+        }
     }
 
     window.onChangeColor = function(color){
       selectedColor = color;
       
+      $(document.body).removeClass('pan-mode');
+      $(document.body).removeClass('pan-mode-panning');
+                
       startDrawing(selectedColor);
+      
+      $("#draw").click();
     };
 
     /* Disable pixel selector, update canvas, and send data to server */
@@ -122,15 +143,31 @@
     }
 
     $(document).keydown(function(e){
-        if(e.keyCode === 27 && isDrawing){
-          drawingShape.visible = false;
-          isDrawing = false;
-          stage.update();
+        if(e.keyCode === 27 && isActive()){
+          if(isDrawing){
+            drawingShape.visible = false;
+            isDrawing = false;
+            stage.update();
+      
+            $("#pan").click();
+            
+            $(document.body).addClass('pan-mode');
+            $(document.body).addClass('pan-mode-panning');
+          }
+          else{
+            $(document.body).removeClass('pan-mode');
+            $(document.body).removeClass('pan-mode-panning');
+            
+            $("#draw").click();
+            startDrawing(selectedColor);
+            
+          }
         }
     });
-
+    
     $(document).ready(function() {
-
+        $(document.body).addClass("pan-mode");
+        
         console.log("Initializing EaselJS Stage");
         stage = new createjs.Stage(Pixel.CANVAS_ELEMENT_ID);
 
@@ -147,7 +184,7 @@
             for (var y = 0; y < CANVAS_HEIGHT; y++) {
                 var shape = new createjs.Shape();
                 pixels.addChild(shape);
-                pixelMap[x][y] = {"color": DEFAULT_COLOR, "shape": shape};
+                pixelMap[x][y] = {"color": BACKGROUND_COLOR, "shape": shape};
             }
         }
 
@@ -187,14 +224,25 @@
         var dragX = 0;
         var dragY = 0;
         pixels.on("mousedown", function(e){
+          if(!isDrawing){
             dragX = e.rawX - pixels.x;
             dragY = e.rawY - pixels.y;
+            
+            $(document.body).addClass('pan-mode-panning');
+          }
         });
+        
+        $(document.body).on("mouseup", function(e){
+          $(document.body).removeClass('pan-mode-panning');
+        });
+        
         pixels.on("pressmove", function(e){
+          if(!isDrawing){
             // canvas panning
             pixels.x = e.rawX - dragX;
             pixels.y = e.rawY - dragY;
             stage.update();
+          }
         });
 
 
@@ -206,7 +254,88 @@
         if (Pixel.onload) {
             Pixel.onload();
         }
+        
+        colorPicker = tinycolorpicker(document.getElementById("colorPicker"));
+        colorPicker.setColor(DEFAULT_COLOR);
+        
+        $("#controls").mouseenter(function(){
+          if(isDrawing){
+            drawingShape.visible = false;
+            isDrawing = false;
+            stage.update();
+            
+            wasDrawing = true;
+          }
+        });
+        
+        $("#controls").mouseleave(function(){
+          if(wasDrawing){
+            drawingShape.visible = true;
+            isDrawing = true;
+            stage.update();
+            
+            wasDrawing = false;
+          }
+        });
+        
+        $('input[type=radio][name=state]').change(function() {
+          if (this.value === 'draw') {
+            wasDrawing = true;
+            
+            if(startedDrawing === false){
+              startDrawing(DEFAULT_COLOR);
+            }
+            $(document.body).removeClass('pan-mode');
+            $(document.body).removeClass('pan-mode-panning');
+          }
+          else if (this.value === 'pan') {
+            wasDrawing = false;
+            $(document.body).addClass('pan-mode');
+          }
+        });
+                
+        setInterval(function(){
+          let remaining = endDate - new Date();
+          
+          const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+          remaining %= (24 * 60 * 60 * 1000);
+          
+          const hours = Math.floor(remaining / (60 * 60 * 1000));
+          remaining %= (60 * 60 * 1000);
+          
+          const minutes = Math.floor(remaining / (60 * 1000));
+          remaining %= (60 * 1000);
+          
+          const seconds = Math.floor(remaining / 1000);
+          
+          let html = "";
+          if(days >= 1){
+            html += "<strong>" + days + "</strong> day";
+          }
+          
+          if(days > 1){
+            html += "s, ";
+          }
+          else{
+            html += ", "
+          }
+          
+          html += "<strong>" + hours + " : " + minutes + " : " + seconds + " : "+ "</strong> seconds"
+          
+          $("#clockValue").html(html);  
+        }, 1000);
 
+
+        if(!isActive()){
+          $("#controls").remove();
+          toastr["info"]("Congratulations, this is your mural.", "The Battle is over!");
+        }
+        else{
+          toastr["info"]("The rules: Draw whatever you want until the clock stops.", "ATG Mural Pixel Fight");
+          setTimeout(function() {
+               toastr["info"]("Pending Eliot's approval of the content, this will be printed into an mural that spans the wall infront of the colab.");
+          }, 3000);
+        }
     });
 
     // zoom functionality

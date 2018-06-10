@@ -27,7 +27,7 @@ const CANVAS_HEIGHT = process.env.CANVAS_HEIGHT || 50;
 const USER_PAINT_LIMIT = process.env.USER_PAINT_LIMIT || 60;
 
 
-/*  !!!!! DONT EDIT ANYTHING AFTER THIS !!!!!  */
+/*  !!!!! DONT EDIT ANYTHING AFTER THIS !!!!!  ok :-) */
 var http = require("http");
 var express = require("express");
 var app = express();
@@ -47,15 +47,21 @@ var pixels = new Array(CANVAS_WIDTH);
 for (var i = 0; i < CANVAS_WIDTH; i++)
     pixels[i] = Array(CANVAS_HEIGHT);
 
-var DEFAULT_COLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in main.js
+var BACKGROUND_COLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in main.js
+
+const endDate = new Date(Date.UTC(2018, 5, 11)); // This value must be sync'd with the value in main.js
 
 // Reset pixel array
 function resetPixels() {
     for (var x = 0; x < CANVAS_WIDTH; x++) {
         for (var y = 0; y < CANVAS_HEIGHT; y++) {
-            pixels[x][y] = { x, y, color: DEFAULT_COLOR };
+            pixels[x][y] = { x, y, color: BACKGROUND_COLOR };
         }
     }
+}
+
+function isActive(){
+  return endDate - Date.now() > 0;
 }
 
 console.log("Pixel Server Initializing");
@@ -184,7 +190,8 @@ ws.on("connection", function(socket) {
                 //     }
                 // }
 
-                if (data.x >= 0 && data.y >= 0 && data.x < CANVAS_WIDTH && data.y < CANVAS_HEIGHT) {
+                if (isActive() && 
+                    data.x >= 0 && data.y >= 0 && data.x < CANVAS_WIDTH && data.y < CANVAS_HEIGHT) {
 
                     log("PAINT (" + data.x + ", " + data.y + ") " + data.color);
                     pixels[data.x][data.y]["color"] = data.color;

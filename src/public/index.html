@@ -22,18 +22,24 @@
     <script src="scripts/pixel-config.js"></script>
     <script src="scripts/PixelSocket.js"></script>
     <script src="scripts/main.js"></script>
-    <script>
-      window.onload = function(){
-        let colorPicker = tinycolorpicker(document.getElementById("colorPicker"));
-      }
-    </script>
     <style>
       body{
         font-family: "Helvetica", "sans-serif";
         color: rgba(75, 75, 75, 1.0);
       }
-            
+      
+      .pan-mode{
+        cursor: grab;
+        cursor: -webkit-grab;
+      }
+      
+      .pan-mode-panning{
+        cursor: grabbing;
+        cursor: -webkit-grabbing;
+      }
+      
       #controls{
+        cursor: default;
         -webkit-touch-callout: none;
         -webkit-user-select: none;
         -moz-user-select: none;
@@ -41,7 +47,7 @@
         user-select: none;
         position: absolute;
         width: 358px;
-        height: 85px;
+        height: 87px;
         left: 50%;
         bottom: 30px;
         margin-left: -179px;
@@ -49,6 +55,10 @@
         border-radius: 5px;
         z-index: 1000;
         border: 1px solid rgba(180, 180, 180, 0.6);
+      }
+      
+      .pan-mode-panning #controls{
+        pointer-events: none;
       }
       
       #colorLabel{
@@ -59,7 +69,7 @@
         height: 27px;
         border-radius: 15px;
         border: 1px solid rgba(180, 180, 180, 0.6); 
-        left: 20px;
+        right: 20px;
       }
       #colorLabelText{
         position: absolute;
@@ -69,28 +79,101 @@
       #colorPicker{
         position: absolute;
         top: -70px;
-        left: 135px;
+        right: 15px;
       }
       
       #clock{
         position: absolute;
-        top: 48px;
+        top: 50px;
         left: 20px;
         background: rgba(255, 255, 255, 1.0);
-        height: 25px;
+        height: 27px;
         padding: 0;
         width: 320px;
         border-radius: 15px;
       }
       #clockLabel{
         position: absolute;
-        top: 3px;
+        top: 4px;
         left: 15px;
       }
       #clockValue{
         position: absolute;
-        top: 3px;
-        left: 120px;
+        top: 4px;
+        right: 15px;
+      }
+      
+      /* -------------------- Styled radio buttions ------------------------*/
+      /* The container */
+      .draw {
+        top: 12px;
+        left: 20px;
+      }
+      .pan {
+        top: 12px;
+        left: 95px;
+      }
+      .container {
+          display: block;
+          position: absolute;
+          padding-left: 35px;
+          margin-bottom: 12px;
+          cursor: pointer;
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+          user-select: none;
+      }
+
+      /* Hide the browser's default radio button */
+      .container input {
+          position: absolute;
+          opacity: 0;
+          cursor: pointer;
+      }
+
+      /* Create a custom radio button */
+      .checkmark {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 27px;
+          width: 27px;
+          background-color: #eee;
+          border-radius: 50%;
+          margin-top: -2px;
+      }
+
+      /* On mouse-over, add a grey background color */
+      .container:hover input ~ .checkmark {
+          background-color: #ccc;
+      }
+
+      /* When the radio button is checked, add a blue background */
+      .container input:checked ~ .checkmark {
+          background-color: #2196F3;
+      }
+
+      /* Create the indicator (the dot/circle - hidden when not checked) */
+      .checkmark:after {
+          content: "";
+          position: absolute;
+          display: none;
+      }
+
+      /* Show the indicator (dot/circle) when checked */
+      .container input:checked ~ .checkmark:after {
+          display: block;
+      }
+
+      /* Style the indicator (dot/circle) */
+      .container .checkmark:after {
+       	top: 10px;
+      	left: 10px;
+      	width: 8px;
+      	height: 8px;
+      	border-radius: 50%;
+      	background: white;
       }
     </style>
 </head>
@@ -102,8 +185,16 @@
       </div>
       <div id="clock">
         <div id="clockLabel">Time Left:</div>
-        <div id="clockValue"><strong id="days">10</strong> days, <strong id="hms">23 : 37 : 60</strong> seconds</div>
+        <div id="clockValue"></div>
       </div>
+      <label class="container draw">Draw
+        <input id="draw" type="radio" name="state" value="draw">
+        <span class="checkmark"></span>
+      </label>
+      <label class="container pan">Pan
+        <input id="pan" type="radio" checked="checked" name="state" value="pan">
+        <span class="checkmark"></span>
+      </label>
       
       <div id="colorPicker">
         <a class="color"><div class="colorInner"></div></a>

@@ -15,14 +15,6 @@
         CANVAS_MIN_ZOOM: 10,
         CANVAS_MAX_ZOOM: 40,
         CANVAS_ELEMENT_ID: "pixelCanvas",
-
-        // optional onload()
-        onload: function() {
-            toastr["info"]("The rules: Draw whatever you want until the clock stops.", "ATG Mural Pixel Fight");
-            setTimeout(function() {
-                 toastr["info"]("Pending Eliot's approval of the content, this will be printed into an 8 foot mural that goes infront of the colab.");
-            }, 3000);
-        }
     };
     window.Pixel = Pixel;
 
