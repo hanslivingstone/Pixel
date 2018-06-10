@@ -64,8 +64,9 @@
 			if (this.onopen) this.onopen(event);
 			this.requestRefresh();
 
+      let self = this;
 			setInterval(function() {
-				this.socket.send('{"action":"ping"}')
+				self.socket.send('{"action":"ping"}')
 			}, 15000);
 		}.bind(this);
 	};

@@ -19,29 +19,26 @@
 
         // optional onload()
         onload: function() {
-            toastr["info"]("Select a color with the 1 - 9 keys\r\nPress 0 to erase", "Instructions");
+            toastr["info"]("The rules: Draw whatever you want until the clock stops.", "ATG Mural Pixel Fight");
             setTimeout(function() {
-                toastr["info"]("Keep in mind, you have a 1 minute delay between each pixel you draw");
-            }, 4000);
-            setTimeout(function() {
-                toastr["info"]("Most importantly, have fun! Full sourcecode is on my GitHub.");
-            }, 8000);
+                 toastr["info"]("Pending Eliot's approval of the content, this will be printed into an 8 foot mural that goes infront of the colab.");
+            }, 3000);
         }
     };
     window.Pixel = Pixel;
 
     // toastr Notifications
     toastr.options = {
-        "closeButton": false,
+        "closeButton": true,
         "debug": false,
         "newestOnTop": false,
         "progressBar": false,
-        "positionClass": "toast-bottom-center",
+        "positionClass": "toast-top-center",
         "preventDuplicates": true,
         "onclick": null,
         "showDuration": "300",
-        "hideDuration": "100",
-        "timeOut": "3500",
+        "hideDuration": "300",
+        "timeOut": "30000",
         "extendedTimeOut": "100",
         "showEasing": "swing",
         "hideEasing": "linear",

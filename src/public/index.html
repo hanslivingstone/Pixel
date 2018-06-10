@@ -11,18 +11,102 @@
     <meta http-equiv="pragma" content="no-cache" />
     <link rel="stylesheet" href="stylesheets/styles.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+    <link rel="stylesheet" href="stylesheets/color-picker.css" type="text/css" media="screen"/>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
     <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
     <script src="https://code.createjs.com/easeljs-0.8.2.min.js"></script>
 
+    <script src="scripts/color-picker.js"></script>
     <script src="scripts/pixel-config.js"></script>
     <script src="scripts/PixelSocket.js"></script>
     <script src="scripts/main.js"></script>
+    <script>
+      window.onload = function(){
+        let colorPicker = tinycolorpicker(document.getElementById("colorPicker"));
+      }
+    </script>
+    <style>
+      body{
+        font-family: "Helvetica", "sans-serif";
+        color: rgba(75, 75, 75, 1.0);
+      }
+            
+      #controls{
+        position: absolute;
+        width: 358px;
+        height: 85px;
+        left: 50%;
+        bottom: 30px;
+        margin-left: -179px;
+        background: rgba(150, 150, 150, 0.6);
+        border-radius: 5px;
+        z-index: 1000;
+        border: 1px solid rgba(180, 180, 180, 0.6);
+      }
+      
+      #colorLabel{
+        position: absolute;
+        top: 10px;
+        width: 140px;
+        background: rgba(255, 255, 255, 1.0);
+        height: 27px;
+        border-radius: 15px;
+        border: 1px solid rgba(180, 180, 180, 0.6); 
+        left: 20px;
+      }
+      #colorLabelText{
+        position: absolute;
+        top: 3px;
+        left: 15px;
+      } 
+      #colorPicker{
+        position: absolute;
+        top: -70px;
+        left: 135px;
+      }
+      
+      #clock{
+        position: absolute;
+        top: 48px;
+        left: 20px;
+        background: rgba(255, 255, 255, 1.0);
+        height: 25px;
+        padding: 0;
+        width: 320px;
+        border-radius: 15px;
+      }
+      #clockLabel{
+        position: absolute;
+        top: 3px;
+        left: 15px;
+      }
+      #clockValue{
+        position: absolute;
+        top: 3px;
+        left: 120px;
+      }
+    </style>
 </head>
 
 <body>
+    <div id="controls">
+      <div id="colorLabel">
+        <div id="colorLabelText">Choose Color: </div>  
+      </div>
+      <div id="clock">
+        <div id="clockLabel">Time Left:</div>
+        <div id="clockValue"><strong id="days">10</strong> days, <strong id="hms">23 : 37 : 60</strong> seconds</div>
+      </div>
+      
+      <div id="colorPicker">
+        <a class="color"><div class="colorInner"></div></a>
+        <div class="track"></div>
+        <ul class="dropdown"><li></li></ul>
+        <input type="hidden" class="colorInput"/>
+      </div>
+    </div>
     <canvas id="pixelCanvas"></canvas>
 </body>
 
