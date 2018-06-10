@@ -198,6 +198,9 @@
                 self.setColor("rgb(" + colorData[0] + "," + colorData[1] + "," + colorData[2] + ")");
 
                 $container.dispatchEvent(changeEvent, [self.colorHex, self.colorRGB]);
+                
+                // MUhahahahaha
+                window.onChangeColor(self.colorRGB);
             }
         }
 

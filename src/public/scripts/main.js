@@ -102,6 +102,12 @@
         stage.update();
     }
 
+    window.onChangeColor = function(color){
+      selectedColor = color;
+      
+      startDrawing(selectedColor);
+    };
+
     /* Disable pixel selector, update canvas, and send data to server */
     function endDrawing(x, y) {
         if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
@@ -112,10 +118,16 @@
             // SEND PIXEL UPDATE TO SERVER!
             pixelSocket.sendPixel(x, y, selectedColor);
         }
-        drawingShape.visible = false;
-        isDrawing = false;
         stage.update();
     }
+
+    $(document).keydown(function(e){
+        if(e.keyCode === 27 && isDrawing){
+          drawingShape.visible = false;
+          isDrawing = false;
+          stage.update();
+        }
+    });
 
     $(document).ready(function() {
 
@@ -153,10 +165,6 @@
         console.log("Canvas Initialization done.");
 
 
-        /* User selects color with number keys */
-        $(document).keydown(function(e){
-            startDrawing("rgb(0,0,0)");
-        });
         /* User selects the pixel to paint (if selector is active) */
         stage.addEventListener("click", function(e) {
             if (isDrawing){
