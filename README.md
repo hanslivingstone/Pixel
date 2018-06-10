@@ -62,7 +62,7 @@ Pixel can be manipulated with the PixelSocket class (included in `PixelSocket.js
 	Creates a PixelSocket object for the specified server. If autoconnect is set to true, it connects automatically.
 * `PixelSocket.connect()`  
 	Connects to server specified in the constructor
-* `PixelSocket.sendPixel(x, y, colorID)`  
+* `PixelSocket.sendPixel(x, y, color)`  
 	Sends a paint request to the server with the specified coordinates and color ID
 * `PixelSocket.getPixel(x, y)`  
 	Tells the server that we need to update a specific pixel

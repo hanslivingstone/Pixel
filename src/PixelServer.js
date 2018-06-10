@@ -47,11 +47,13 @@ var pixels = new Array(CANVAS_WIDTH);
 for (var i = 0; i < CANVAS_WIDTH; i++)
     pixels[i] = Array(CANVAS_HEIGHT);
 
+var DEFAULT_COLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in main.js
+
 // Reset pixel array
 function resetPixels() {
     for (var x = 0; x < CANVAS_WIDTH; x++) {
         for (var y = 0; y < CANVAS_HEIGHT; y++) {
-            pixels[x][y] = { x, y, colorID: 0 };
+            pixels[x][y] = { x, y, color: DEFAULT_COLOR };
         }
     }
 }
@@ -68,7 +70,7 @@ if (MONGODB_URI) {
         if (pixelCollection) {
             var dbPixels = pixelCollection.find().toArray(function(err, dbPixels) {
                 for (var i = 0; i < dbPixels.length; i++)
-                    pixels[dbPixels[i].x][dbPixels[i].y].colorID = dbPixels[i].colorID;
+                    pixels[dbPixels[i].x][dbPixels[i].y].color = dbPixels[i].color;
 
                 console.log("Loaded", dbPixels.length, "pixels from MongoDB");
             });
@@ -97,7 +99,7 @@ ws.on("connection", function(socket) {
             "action": "updatePixel",
             x,
             y,
-            'colorID': pixels[x][y].colorID
+            'color': pixels[x][y].color
         }));
     }
 
@@ -117,6 +119,27 @@ ws.on("connection", function(socket) {
         "height": CANVAS_HEIGHT
     }));
 
+    function rgbToUint(color){
+      const chunks = color.split(",");
+      const r = chunks[0].slice(4);
+      const g = chunks[1];
+      const b = chunks[2].slice(0, -1);
+      
+      return r << 16 | 
+             g << 8 | 
+             b;
+    }
+    
+    function uintToRgb(color){
+      const mask = 255;
+      
+      const r = (color >> 16) & mask;
+      const g = (color >> 8) & mask;
+      const b = color & (mask);
+      
+      return "rgb(" + r + "," + g + "," + b + ")";
+    }
+    
     socket.on("message", function(rawdata) {
         var message_timestamp = new Date();
 
@@ -140,12 +163,13 @@ ws.on("connection", function(socket) {
             case "refreshPixels":
                 log("Client requested pixel refresh");
 
-                var pixelArray = new Uint8Array(CANVAS_WIDTH * CANVAS_HEIGHT);
+                var pixelArray = new Uint32Array(CANVAS_WIDTH * CANVAS_HEIGHT);
                 for (var x = 0; x < CANVAS_WIDTH; x++) {
                     for (var y = 0; y < CANVAS_HEIGHT; y++) {
-                        pixelArray[x + y * CANVAS_WIDTH] = pixels[x][y]["colorID"];
+                        pixelArray[x + y * CANVAS_WIDTH] = rgbToUint(pixels[x][y]["color"]);
                     }
                 }
+
                 socket.send(pixelArray);
                 break;
 
@@ -162,21 +186,21 @@ ws.on("connection", function(socket) {
 
                 if (data.x >= 0 && data.y >= 0 && data.x < CANVAS_WIDTH && data.y < CANVAS_HEIGHT) {
 
-                    log("PAINT (" + data.x + ", " + data.y + ") " + data.colorID);
-                    pixels[data.x][data.y]["colorID"] = data.colorID;
+                    log("PAINT (" + data.x + ", " + data.y + ") " + data.color);
+                    pixels[data.x][data.y]["color"] = data.color;
                     timestamps[remoteIP] = message_timestamp;
                     sendTimer("paintsuccess", USER_PAINT_LIMIT * 1000);
 
                     // Update MongoDB document, if collection is available
                     if (pixelCollection) {
-                        pixelCollection.findOneAndUpdate({ "x": data.x, "y": data.y }, { $set: { colorID: data.colorID } }, { upsert: true });
+                        pixelCollection.findOneAndUpdate({ "x": data.x, "y": data.y }, { $set: { color: data.color } }, { upsert: true });
                     }
 
                     var broadcastPacket = JSON.stringify({
                         "action": "updatePixel",
                         'x': data.x,
                         'y': data.y,
-                        'colorID': pixels[data.x][data.y].colorID
+                        'color': pixels[data.x][data.y].color
                     });
                     ws.clients.forEach(function(client) {
                         if ((client !== socket) && (client.readyState === WebSocket.OPEN)) {

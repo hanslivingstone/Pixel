@@ -14,7 +14,6 @@
         CANVAS_INITIAL_ZOOM: 20,
         CANVAS_MIN_ZOOM: 10,
         CANVAS_MAX_ZOOM: 40,
-        CANVAS_COLORS: ["#eeeeee", "red", "orange", "yellow", "green", "blue", "purple", "#614126", "white", "black"],
         CANVAS_ELEMENT_ID: "pixelCanvas",
 
         // optional onload()

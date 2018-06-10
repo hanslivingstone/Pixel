@@ -23,7 +23,7 @@
 			if (event.data.byteLength && event.data.byteLength === this.expectedRefreshSize) {
 
 				if (this.refreshCallback)
-					this.refreshCallback(new Uint8Array(event.data));
+					this.refreshCallback(new Uint32Array(event.data));
 				else
 					console.log("No refresh callback specified.")
 
@@ -40,7 +40,7 @@
 				}
 
 				if (received.action === 'canvasInfo') {
-					this.expectedRefreshSize = received.width * received.height;
+					this.expectedRefreshSize = received.width * received.height * 4;
 					return;
 				}
 
@@ -71,8 +71,8 @@
 		}.bind(this);
 	};
 
-	PixelSocket.prototype.sendPixel = function(x, y, colorID){
-		this.socket.send(JSON.stringify({"action": "paint", x, y, colorID}));
+	PixelSocket.prototype.sendPixel = function(x, y, color){
+		this.socket.send(JSON.stringify({"action": "paint", x, y, color}));
 	};
 
 	PixelSocket.prototype.getPixel = function(x, y){

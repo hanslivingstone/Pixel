@@ -7,14 +7,15 @@
     var Pixel = window.Pixel || {};
     var CANVAS_WIDTH = Pixel.CANVAS_WIDTH;
     var CANVAS_HEIGHT = Pixel.CANVAS_HEIGHT;
-    var CANVAS_COLORS = Pixel.CANVAS_COLORS;
-
+    
+    var DEFAULT_COLOR = "rgb(255,255,255)"; // Must stay sync'd with the value in PixelServer.js
+    
     var stage;                                          // EaselJS stage
     var pixels;                                         // EaselJS container to store all the pixels
     var zoom = Pixel.CANVAS_INITIAL_ZOOM;               // zoom level
     var isDrawing = false;                              // whether a new pixel to draw is being selected
     var drawingShape = new createjs.Shape();            // shape to render pixel selector
-    var selectedColorID = 0;                            // ID of color to draw
+    var selectedColor = "rgb(255,0,0)";                 // color to draw
 
     var pixelMap = new Array(CANVAS_WIDTH);             // 2D array mapping of pixels
     for (var i = 0; i < CANVAS_WIDTH; i++)
@@ -22,6 +23,16 @@
 
     var pixelRefreshData;
 
+    function uintToRgb(color){
+      const mask = 255;
+      
+      const r = (color >> 16) & mask;
+      const g = (color >> 8) & mask;
+      const b = color & (mask);
+      
+      return "rgb(" + r + "," + g + "," + b + ")";
+    }
+    
     /* START PixelSocket CODE */
 
     var pixelSocket = new PixelSocket(Pixel.PIXEL_SERVER);
@@ -35,9 +46,9 @@
         }
         for (var x = 0; x < CANVAS_WIDTH; x++) {
             for (var y = 0; y < CANVAS_HEIGHT; y++) {
-                var colorID = pixelData[x + y * CANVAS_WIDTH];
-                pixelMap[x][y]["shape"].graphics.beginFill(CANVAS_COLORS[colorID]).drawRect(x, y, 1, 1);
-                pixelMap[x][y]["color"] = colorID;
+                var color = uintToRgb(pixelData[x + y * CANVAS_WIDTH]);
+                pixelMap[x][y]["shape"].graphics.beginFill(color).drawRect(x, y, 1, 1);
+                pixelMap[x][y]["color"] = color;
             }
         }
         stage.update();
@@ -47,10 +58,10 @@
 
         switch (data.action) {
             case "updatePixel":
-                console.log("Pixel Update", data.x, data.y, "color", data.colorID);
+                console.log("Pixel Update", data.x, data.y, "color", data.color);
                 if (!pixels) return;
 
-                pixelMap[data.x][data.y]["shape"].graphics.beginFill(CANVAS_COLORS[data.colorID]).drawRect(data.x, data.y, 1, 1);
+                pixelMap[data.x][data.y]["shape"].graphics.beginFill(data.color).drawRect(data.x, data.y, 1, 1);
                 data["shape"] = pixelMap[data.x][data.y]["shape"];
                 pixelMap[data.x][data.y] = data;
                 stage.update();
@@ -77,14 +88,12 @@
     pixelSocket.connect();
     /* END PixelSocket CODE */
 
-
     /* Enable pixel selector */
-    function startDrawing(colorID = 0) {
-        var color = CANVAS_COLORS[colorID];
+    function startDrawing(color) {
         console.log("Selected Color", color);
         var p = pixels.globalToLocal(stage.mouseX, stage.mouseY);
-        selectedColorID = colorID;
-        drawingShape.graphics.clear().beginFill(CANVAS_COLORS[selectedColorID]).drawRect(0, 0, 1, 1);
+        selectedColor = color;
+        drawingShape.graphics.clear().beginFill(selectedColor).drawRect(0, 0, 1, 1);
         drawingShape.x = Math.floor(p.x);
         drawingShape.y = Math.floor(p.y);
         drawingShape.visible = true;
@@ -96,11 +105,12 @@
     /* Disable pixel selector, update canvas, and send data to server */
     function endDrawing(x, y) {
         if (x >= 0 && y >= 0 && x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
-            console.log("Drawing to pixel", x, y, CANVAS_COLORS[selectedColorID]);
-            pixelMap[x][y]["shape"].graphics.beginFill(CANVAS_COLORS[selectedColorID]).drawRect(x, y, 1, 1);
+            
+            console.log("Drawing to pixel", x, y, selectedColor);
+            pixelMap[x][y]["shape"].graphics.beginFill(selectedColor).drawRect(x, y, 1, 1);
 
             // SEND PIXEL UPDATE TO SERVER!
-            pixelSocket.sendPixel(x, y, selectedColorID);
+            pixelSocket.sendPixel(x, y, selectedColor);
         }
         drawingShape.visible = false;
         isDrawing = false;
@@ -125,7 +135,7 @@
             for (var y = 0; y < CANVAS_HEIGHT; y++) {
                 var shape = new createjs.Shape();
                 pixels.addChild(shape);
-                pixelMap[x][y] = {"color": 0, "shape": shape};
+                pixelMap[x][y] = {"color": DEFAULT_COLOR, "shape": shape};
             }
         }
 
@@ -145,10 +155,7 @@
 
         /* User selects color with number keys */
         $(document).keydown(function(e){
-            var i = e.keyCode - 49;
-            i += 1;             // ignore the first color in the CANVAS_COLORS array
-            if ((i >= 0) && (i < CANVAS_COLORS.length))
-                startDrawing(i);
+            startDrawing("rgb(0,0,0)");
         });
         /* User selects the pixel to paint (if selector is active) */
         stage.addEventListener("click", function(e) {
