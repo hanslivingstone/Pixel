@@ -16,11 +16,9 @@
 /* Port for WebSocket server to listen on */
 const PORT = process.env.PORT || 3001;
 
-const MONGODB_URI = process.env.MONGODB_URI || null;
-
 /* Dimensions of the canvas, these values must be the same as the ones
 set in the browser's code. */
-const CANVAS_WIDTH = process.env.CANVAS_WIDTH || 50;
+const CANVAS_WIDTH = process.env.CANVAS_WIDTH || 200;
 const CANVAS_HEIGHT = process.env.CANVAS_HEIGHT || 50;
 
 /* Minimum wait time between each draw request, per IP address (in seconds) */
@@ -31,7 +29,8 @@ const USER_PAINT_LIMIT = process.env.USER_PAINT_LIMIT || 60;
 var http = require("http");
 var express = require("express");
 var app = express();
-var MongoClient = require('mongodb').MongoClient;
+var fs = require("fs");
+var PNG = require('pngjs').PNG;
 
 app.use(express.static(__dirname + "/public/"));
 
@@ -64,33 +63,86 @@ function isActive(){
   return endDate - Date.now() > 0;
 }
 
-console.log("Pixel Server Initializing");
 
-let ws, mongoclient, pixelCollection;
-resetPixels();
+function setIt(x, y, color){
+  if( y < CANVAS_HEIGHT && x < CANVAS_WIDTH){
+    pixels[x][y].color = color;
+  }
+}
 
-if (MONGODB_URI) {
-    MongoClient.connect(MONGODB_URI, function(err, db) {
-        mongoclient = db;
-        pixelCollection = mongoclient.collection('pixels');
-        if (pixelCollection) {
-            var dbPixels = pixelCollection.find().toArray(function(err, dbPixels) {
-                for (var i = 0; i < dbPixels.length; i++)
-                    pixels[dbPixels[i].x][dbPixels[i].y].color = dbPixels[i].color;
+function loadBackground(xOffset, yOffset, path){
+  fs.createReadStream(path)
+    .pipe(new PNG({
+        filterType: 4
+    }))
+    .on('parsed', function() {
+        let i = yOffset, j;
+        for (let y = 5; y < this.height; y += 9) {
+            j = xOffset;
+            for (let x = 5; x < this.width; x += 9) {
+                const idx = (this.width * y + x) << 2;
 
-                console.log("Loaded", dbPixels.length, "pixels from MongoDB");
-            });
-        } else {
-            mongoclient.createCollection('pixels');
-            console.log("Creating MongoDB collection");
+                const r = this.data[idx];
+                const g = this.data[idx+1];
+                const b = this.data[idx+2];
+                const a = this.data[idx+3];
+
+                const color = "rgb(" + r + "," + g + "," + b + ")";
+                
+                setIt(j, i, color);
+                setIt(j + 57, i, color);
+                setIt(j + (57 * 2), i, color);
+                setIt(j + (57 * 3), i, color);
+                setIt(j + (57 * 4), i, color);
+                setIt(j + (57 * 5), i, color);
+              
+                j++;
+            }
+            i++;
         }
     });
-} else {
-    console.log("No MongoDB connection, all pixels will be stored in RAM");
+}
+
+function loadSprite(xOffset, yOffset, path){
+  fs.createReadStream(path)
+    .pipe(new PNG({
+        filterType: 4
+    }))
+    .on('parsed', function() {
+        let i = 0, j;
+        for (let y = 0; y < this.height; y += 1) {
+            j = 0;
+            for (let x = 0; x < this.width; x += 1) {
+                const idx = (this.width * y + x) << 2;
+
+                const r = this.data[idx];
+                const g = this.data[idx+1];
+                const b = this.data[idx+2];
+                const a = this.data[idx+3];
+
+                if(a === 255){
+                  const color = "rgb(" + r + "," + g + "," + b + ")";
+                  
+                  setIt(j + xOffset, i + yOffset, color);
+                }
+                j++;
+            }
+            i++;
+        }
+    });
 }
 
 
-ws = new WebSocketServer({ server });
+console.log("Pixel Server Initializing");
+
+resetPixels();
+
+loadBackground(0, 13, "input.png");
+setTimeout(function(){
+  loadSprite(5, 3, "megaman.png")
+}, 100);
+
+let ws = new WebSocketServer({ server });
 
 ws.on("connection", function(socket) {
     var remoteIP = socket._socket.remoteAddress;
@@ -198,10 +250,7 @@ ws.on("connection", function(socket) {
                     timestamps[remoteIP] = message_timestamp;
                     sendTimer("paintsuccess", USER_PAINT_LIMIT * 1000);
 
-                    // Update MongoDB document, if collection is available
-                    if (pixelCollection) {
-                        pixelCollection.findOneAndUpdate({ "x": data.x, "y": data.y }, { $set: { color: data.color } }, { upsert: true });
-                    }
+                    
 
                     var broadcastPacket = JSON.stringify({
                         "action": "updatePixel",

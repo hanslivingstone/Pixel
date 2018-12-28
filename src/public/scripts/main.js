@@ -30,7 +30,7 @@
 
     var pixelRefreshData;
 
-    const endDate = new Date(Date.UTC(2018, 5, 12)); // This value must be sync'd with the value in pixelServer.js
+    const endDate = new Date(Date.UTC(2018, 5, 11)); // This value must be sync'd with the value in pixelServer.js
 
     function uintToRgb(color){
       const mask = 255;
@@ -165,6 +165,37 @@
         }
     });
     
+    function setTime(){
+      let remaining = endDate - new Date();
+      
+      const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+      remaining %= (24 * 60 * 60 * 1000);
+      
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      remaining %= (60 * 60 * 1000);
+      
+      const minutes = Math.floor(remaining / (60 * 1000));
+      remaining %= (60 * 1000);
+      
+      const seconds = Math.floor(remaining / 1000);
+      
+      let html = "";
+      if(days >= 1){
+        html += "<strong>" + days + "</strong> day";
+      }
+      
+      if(days > 1){
+        html += "s, ";
+      }
+      else if(days == 1){
+        html += ", "
+      }
+      
+      html += "<strong>" + hours + " : " + minutes + " : " + seconds + " : "+ "</strong> seconds"
+      
+      $("#clockValue").html(html);
+    }
+    
     $(document).ready(function() {
         $(document.body).addClass("pan-mode");
         
@@ -294,47 +325,36 @@
           }
         });
                 
-        setInterval(function(){
-          let remaining = endDate - new Date();
-          
-          const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-          remaining %= (24 * 60 * 60 * 1000);
-          
-          const hours = Math.floor(remaining / (60 * 60 * 1000));
-          remaining %= (60 * 60 * 1000);
-          
-          const minutes = Math.floor(remaining / (60 * 1000));
-          remaining %= (60 * 1000);
-          
-          const seconds = Math.floor(remaining / 1000);
-          
-          let html = "";
-          if(days >= 1){
-            html += "<strong>" + days + "</strong> day";
-          }
-          
-          if(days > 1){
-            html += "s, ";
-          }
-          else{
-            html += ", "
-          }
-          
-          html += "<strong>" + hours + " : " + minutes + " : " + seconds + " : "+ "</strong> seconds"
-          
-          $("#clockValue").html(html);  
-        }, 1000);
-
 
         if(!isActive()){
           $("#controls").remove();
-          toastr["info"]("Congratulations, this is your mural.", "The Battle is over!");
+          toastr["success"]("Congratulations, this is your mural.", "The Battle is over!");
         }
         else{
           toastr["info"]("The rules: Draw whatever you want until the clock stops.", "ATG Mural Pixel Fight");
           setTimeout(function() {
                toastr["info"]("Pending Eliot's approval of the content, this will be printed into an mural that spans the wall infront of the colab.");
           }, 3000);
+          
+          setTime();
+          $("#controls").css("visibility", "visible");
+          
+          let checker = setInterval(function(){
+            if(!isActive()){
+              $("#controls").remove();
+              toastr["success"]("Congratulations, this is your mural.", "The Battle is over!");
+              drawingShape.visible = false;
+              isDrawing = false;
+          
+              $(document.body).addClass('pan-mode');
+              $(document.body).addClass('pan-mode-panning');
+
+              clearInterval(checker);      
+            } 
+            else{
+              setTime();
+            }
+          }, 1000);
         }
     });
 
